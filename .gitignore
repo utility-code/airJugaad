@@ -15,3 +15,7 @@ __pycache__/*
 *.csv
 tags
 *.txt
+data/
+data/images
+data/recieved
+*data

@@ -51,7 +51,7 @@ def get_clip_and_save(main_pa):
     outim = im.stdout
     
     if im.returncode==0:
-        if len(outim)>3:
+        if len(outim)>40:
             with open(get_name(main_pa), "wb+") as f:
                     if outim != previous_im:
                         print("saving image")
@@ -66,75 +66,72 @@ def get_clip_and_save(main_pa):
 
 php_sr = '''
 <?php
-session_start();
- 
-$message = ''; 
-if (isset($_POST['uploadBtn']) && $_POST['uploadBtn'] == 'Upload')
-{
-  if (isset($_FILES['uploadedFile']) && $_FILES['uploadedFile']['error'] === UPLOAD_ERR_OK)
-  {
-    // get details of the uploaded file
-    $fileTmpPath = $_FILES['uploadedFile']['tmp_name'];
-    $fileName = $_FILES['uploadedFile']['name'];
-    $fileSize = $_FILES['uploadedFile']['size'];
-    $fileType = $_FILES['uploadedFile']['type'];
-    $fileNameCmps = explode(".", $fileName);
-    $fileExtension = strtolower(end($fileNameCmps));
- 
-    // sanitize file-name
-    $newFileName = md5(time() . $fileName) . '.' . $fileExtension;
- 
-    // check if file has one of the following extensions
-    $allowedfileExtensions = array('jpg', 'gif', 'png', 'zip', 'txt', 'xls', 'doc');
- 
-    if (in_array($fileExtension, $allowedfileExtensions))
-    {
-      // directory in which the uploaded file will be moved
-      $uploadFileDir = './uploaded_files/';
-      $dest_path = $uploadFileDir . $newFileName;
- 
-      if(move_uploaded_file($fileTmpPath, $dest_path)) 
-      {
-        $message ='File is successfully uploaded.';
+    $currentDirectory = getcwd();
+    $uploadDirectory = "../data/recieved/";
+
+    $errors = []; // Store errors here
+
+    $fileExtensionsAllowed = ['jpeg','jpg','png']; // These will be the only file extensions allowed 
+
+    $fileName = $_FILES['the_file']['name'];
+    $fileSize = $_FILES['the_file']['size'];
+    $fileTmpName  = $_FILES['the_file']['tmp_name'];
+    $fileType = $_FILES['the_file']['type'];
+    $fileExtension = strtolower(end(explode('.',$fileName)));
+
+    $uploadPath = $currentDirectory . $uploadDirectory . basename($fileName); 
+
+    if (isset($_POST['submit'])) {
+
+      // if (! in_array($fileExtension,$fileExtensionsAllowed)) {
+      //   $errors[] = "This file extension is not allowed. Please upload a JPEG or PNG file";
+      // }
+      //
+      // if ($fileSize > 4000000) {
+      //   $errors[] = "File exceeds maximum size (4MB)";
+      // }
+      //
+      if (empty($errors)) {
+        $didUpload = move_uploaded_file($fileTmpName, $uploadPath);
+
+        if ($didUpload) {
+          echo "The file " . basename($fileName) . " has been uploaded";
+        } else {
+          echo "An error occurred. Please contact the administrator.";
+        }
+      } else {
+        foreach ($errors as $error) {
+          echo $error . "These are the errors" . "\n";
+        }
       }
-      else
-      {
-        $message = 'There was some error moving the file to upload directory. Please make sure the upload directory is writable by web server.';
-      }
+
     }
-    else
-    {
-      $message = 'Upload failed. Allowed file types: ' . implode(',', $allowedfileExtensions);
-    }
-  }
-  else
-  {
-    $message = 'There is some error in the file upload. Please check the following error.<br>';
-    $message .= 'Error:' . $_FILES['uploadedFile']['error'];
-  }
-}
-$_SESSION['message'] = $message;
+?>
 '''
 
-form_sr = '''
-
+form_sr = f'''
 <!DOCTYPE html>
-<html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>File Upload</title>
+</head>
+<a href = "{ser}index.html">Index</a>
+<a href = "{ser}html/ims.html">Images</a>
+
 <body>
-
-<form action="upload.php" method="post" enctype="multipart/form-data">
-  Select image to upload:
-  <input type="file" name="fileToUpload" id="fileToUpload">
-  <input type="submit" value="Upload Image" name="submit">
-</form>
-
+    <form action="upload.php" method="post" enctype="multipart/form-data">
+        Upload a File:
+        <input type="file" name="the_file" id="fileToUpload">
+        <input type="input" name="fname" id="fileToUpload">
+        <input type="submit" name="submit" value="Start Upload">
+    </form>
 </body>
 </html>
-
 '''
 
 def create_recieved_page(main_pa):
-    with open(main_pa/"html/form.html", "w+") as f:
+    with open(main_pa/"html/rec.html", "w+") as f:
         f.write(form_sr)
     with open(main_pa/"html/upload.php", "w+") as f:
         f.write(php_sr)
@@ -147,17 +144,16 @@ def generate_sites(ser,main_pa):
     with open(main_pa/"index.html", "w+") as f:
             f.write(index_html)
             with open(main_pa/"data/textclip.txt", "r") as content:
+                lin = content.readlines()[::-1]
                 f.write("<br>")
-                f.write("<br>".join(content.readlines()[::-1]))
+                f.write("<br>".join(lin))
 
-    im_list = [x.name for x in (main_pa/"data/images").iterdir()]
+    im_list = [x.name for x in (main_pa/"data/images").iterdir() if x.stat().st_size >20]
 
     with open(main_pa/"html/ims.html", "w+") as f:
         f.write(index_html2)
         f.write("<br>")
         for i in im_list:
-            #  with open(main_pa/"data/images/"/i, "r") as im_data:
-            #      f.write(f'<br><img src="data:image/png;base64, {im_data}"')
 
             image_default = f"<img src = {ser2}data/images/{i}></img>"
             f.write("<br>"+image_default+"<br>")
