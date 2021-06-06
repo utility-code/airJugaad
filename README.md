@@ -2,6 +2,7 @@
 
 - I want airdrop
 - Why not just put it in a live website with clipboard being monitored constantly?
+- Function documentation at [docume](https://subhadityamukherjee.github.io/airJugaad/)
 
 ## Features
 - Clipboard history
