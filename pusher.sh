@@ -1,3 +1,4 @@
+#!/bin/bash
 black "."
 isort .
 pdoc --force --html -o docs airjugaad

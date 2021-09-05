@@ -1,46 +1,18 @@
+import base64
+import os
 import subprocess
 import threading
 import time
-from pathlib import Path
 
 import pyperclip
 
-from .backbone import *
 from .helpers import *
 
-previous_text = ""
-previous_im = ""
 
-
-def execute_functions(
-    serve,
-    regenerate_sites,
-    main_pa,
-    ser,
-    ser2,
-    timefor,
-    index_html,
-    index_html2,
-    index_html3,
-    form_sr,
-    ag,
-):
-    """
-    initialize the directory, start the application
-    """
-    initialize(index_html, index_html2, main_pa, ser2, ser, form_sr, timefor)
-
-    start_multithreaded(
-        serve, regenerate_sites, main_pa, ser, timefor, index_html, index_html2, ag
-    )
-
-
-def get_clip_and_save(main_pa):
+def get_clip_and_save(ag, previous_im, previous_text):
     """
     Grab images from clipboard, compare with last image, save if not the same
     """
-    global previous_im
-    global previous_text
     txt = pyperclip.paste()
     im = subprocess.run(
         ["xclip", "-selection", "clipboard", "-t", "image/png", "-o"],
@@ -50,53 +22,40 @@ def get_clip_and_save(main_pa):
 
     if im.returncode == 0:
         if len(outim) > 40:
-            with open(get_name(main_pa), "wb+") as f:
+            npath = os.path.join(ag.f, "imageclip.html")
+            with open(npath, "w+") as f:
                 if outim != previous_im:
+                    data_uri = base64.b64encode(outim).decode("utf-8")
+                    img_tag = '<img src="data:image/png;base64,{0}">'.format(data_uri)
                     print("saving image")
-                    f.write(outim)
+                    f.write(img_tag)
+
         previous_im = outim
     else:
-        with open(main_pa / "data/textclip.txt", "a+") as f:
+        with open(os.path.join(ag.f, "textclip.html"), "w+") as f:
             if txt != previous_text:
                 print("saving text")
                 f.write("\n" + txt + "\n")
         previous_text = txt
 
 
-def start_multithreaded(
-    serve, regenerate_sites, main_pa, ser, timefor, index_html, index_html2, ag
-):
-    """
-    Run server in one thread and website generator in another
-    """
-    serveThread = threading.Thread(target=serve)
-    ser2 = f"http://{str(ag.i)}:{str(ag.p)}/"
-    genThread = threading.Thread(
-        target=regenerate_sites,
-        args=(main_pa, ser, ser2, timefor, index_html, index_html2),
-    )
-    serveThread.start()
-    genThread.start()
-
-
-def regenerate_sites(main_pa, ser, ser2, waitfor, index_html, index_html2):
+def regenerate_sites(arguments, previous_im, previous_text):
     """
     Live regenerate the website.
     """
     while True:
-        time.sleep(waitfor)
-        get_clip_and_save(main_pa)
-        generate_sites(index_html, index_html2, main_pa, ser2, ser, waitfor)
+        time.sleep(arguments.t)
+        get_clip_and_save(arguments, previous_im, previous_text)
 
 
-def initialize(index_html, index_html2, main_pa, ser2, ser, form_sr, waitfor):
+def start_multithreaded(serve, arguments, previous_im, previous_text):
     """
-    Set up needed directories, create files etc
+    Run server in one thread and website generator in another
     """
-    createIfNot(main_pa / "data")
-    createIfNot(Path(main_pa / "data/recieved/"))
-    createIfNot(Path(main_pa / "data/images/"))
-    createIfNot(main_pa / "html")
-    (main_pa / "data/textclip.txt").touch()
-    generate_sites(index_html, index_html2, main_pa, ser2, ser, waitfor)
-    create_recieved_page(main_pa, form_sr)
+    serveThread = threading.Thread(target=serve)
+    genThread = threading.Thread(
+        target=regenerate_sites,
+        args=(arguments, previous_im, previous_text),
+    )
+    serveThread.start()
+    genThread.start()
