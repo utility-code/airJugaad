@@ -1,50 +1,8 @@
 import argparse as ap
-import cgi
-import http.server
-import os
-import socketserver
 from functools import partial
 from pathlib import Path
 
 from airjugaad.main import *
-
-
-class ServerHandler(http.server.SimpleHTTPRequestHandler):
-    def do_GET(self):
-        http.server.SimpleHTTPRequestHandler.do_GET(self)
-
-    def do_POST(self):
-        form = cgi.FieldStorage(
-            fp=self.rfile,
-            headers=self.headers,
-            environ={
-                "REQUEST_METHOD": "POST",
-                "CONTENT_TYPE": self.headers["Content-Type"],
-            },
-        )
-        http.server.SimpleHTTPRequestHandler.do_GET(self)
-        # cnt = form["the_file"].file.read()
-        # fn = form["the_file"].filename
-        # # with open(main_pa / f"data/recieved/{fn}", "wb+") as f:
-        #     f.write(cnt)
-
-
-def serve(main_path):
-    """
-    Local server creation. Chooses a free port and creates
-    """
-    handler = ServerHandler
-    os.chdir(main_path)
-
-    with socketserver.TCPServer(("", ag.p), handler) as httpd:
-        print(httpd.server_address)
-        # print(
-        #     "Server started at localhost:"
-        #     + " http://0.0.0.0:"
-        #     + str(httpd.server_address[1])
-        # )
-        httpd.serve_forever()
-
 
 previous_im, previous_text = "", ""
 
@@ -59,4 +17,6 @@ port = ag.p
 ipadd = ag.i
 ag.f = Path(ag.f)
 
-start_multithreaded(partial(serve, ag.f), ag, previous_im, previous_text)
+# actual execution
+create_reqs(ag.f)
+start_multithreaded(partial(serve, ag), ag, previous_im, previous_text)
